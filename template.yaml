@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Serverless Fileupload
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+
+Globals:
+  Function:
+    Timeout: 300
+    Runtime: python3.8
+    Layers:
+      - !Ref PythonDepLayer
+    CodeUri: ./serverless_file_upload
+    Tracing: Active
+    Environment:
+      Variables:
+        STAGE: !Ref Stage
+
+Resources:
+  PythonDepLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "${Stage}-serverless-file-upload-dep-layer"
+      CompatibleRuntimes:
+        - python3.8
+      ContentUri: ./.build/dependencies
+      RetentionPolicy: Delete
+
+  FileUploadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${Stage}-file-upload-function
+      Description: !Sub ${Stage}-file pload lambda function
+      Handler: src.upload.handle
+      Policies:
+        - AmazonS3FullAccess
+      Events:
+        FileUploadApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref FileApi
+            Path: /upload
+            Method: ANY
+
+  ReadFileLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${Stage}-file-read-function
+      Description: !Sub ${Stage}-file read lambda function
+      Handler: src.read.handle
+      Policies:
+        - AmazonS3FullAccess
+      Events:
+        ProcessLambdaEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref DataS3
+            Events: s3:ObjectCreated:*
+
+  FileApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${Stage}-File-Upload-Api-Gateway"
+      StageName: !Ref Stage
+
+  DataS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${Stage}-uploaded-ffiles
+
+Outputs:
+  FileApi:
+    Description: 'API Gateway endpoint URL'
+    Value: !Sub 'https://${FileApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/'
+  FileApiId:
+    Description: 'API Gateway ARN for Basic AWS API Gateway'
+    Value: !Ref FileApi
+    Export:
+      Name: !Sub ${Stage}-FileApi-RestApiId
+  CognitoPlatformApiRootResourceId:
+    Value: !GetAtt FileApi.RootResourceId
+    Export:
+      Name: !Sub ${Stage}-FileApi-RootResourceId

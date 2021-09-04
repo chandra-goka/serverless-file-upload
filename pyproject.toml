@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "fileupload-serverless-platform"
+version = "1.0.0"
+description = ""
+authors = ["Chandra Shekhar Goka <chandrashekhar.goka@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+doit = "^0.32.0"
+nose = "^1.3.7"
+structlog = "^20.2.0"
+arrow = "^1.0"
+dict-to-dataclass = "^0.0.8"
+poetry = "^1.1.8"
+nltk = "^3.6.2"
+regex = "^2021.8.28"
+
+
+[tool.poetry.dev-dependencies]
+cfn-lint = "^0.35.0"
+aws-sam-cli = "^1.2.0"
+nose = "^1.3.7"
+taskipy = "^1.5.1"
+nltk = "^3.6.2"
+regex = "^2021.8.28"
+
+[tool.taskipy.tasks]
+
+clean = "rm -rf ./.build && rm -rf ./.aws-sam"
+
+generate_requirements_txt = """mkdir -p ./.build && poetry update && poetry export --without-hashes -f requirements.txt > ./.build/requirements.txt"""
+
+generate_lambda_deps = """pip install \
+  --disable-pip-version-check \
+  -r ./.build/requirements.txt \
+  -t ./.build/dependencies/python/lib/python3.8/site-packages"""
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
